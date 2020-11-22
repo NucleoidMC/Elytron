@@ -1,0 +1,12 @@
+{
+	"gameType.elytron.elytron": "Elytron",
+	"text.elytron.eliminated": "%s has been eliminated!",
+	"text.elytron.eliminated.elytra_not_opened": "%s has been eliminated by not opening their elytra!",
+	"text.elytron.eliminated.fall": "%s has been eliminated by going out of bounds!",
+	"text.elytron.eliminated.fly_into_trail": "%s has been eliminated by flying into a trail!",
+	"text.elytron.eliminated.fly_into_wall": "%s has been eliminated by flying into a wall!",
+	"text.elytron.eliminated.out_of_bounds": "%s has been eliminated by going out of bounds!",
+	"text.elytron.open_elytra": "Open your Elytra!",
+	"text.elytron.win": "%s has won the game!",
+	"text.elytron.win.none": "Nobody won the game!"
+}

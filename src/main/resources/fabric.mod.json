@@ -1,0 +1,25 @@
+{
+	"schemaVersion": 1,
+	"id": "elytron",
+	"version": "${version}",
+	"name": "Elytron",
+	"description": "An elytra trail avoidance minigame for Minecraft.",
+	"authors": [
+		"haykam821"
+	],
+	"contact": {
+		"homepage": "https://github.com/haykam821/Elytron#readme",
+		"issues": "https://github.com/haykam821/Elytron/issues"
+	},
+	"entrypoints": {
+		"main": [
+			"io.github.haykam821.elytron.Main"
+		]
+	},
+	"license": "MIT",
+	"icon": "assets/elytron/icon.png",
+	"depends": {
+		"fabricloader": ">=0.4.0",
+		"plasmid": "*"
+	}
+}

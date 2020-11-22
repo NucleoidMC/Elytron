@@ -1,0 +1,12 @@
+{
+	"type": "elytron:elytron",
+	"map": {
+		"x": 64,
+		"y": 64,
+		"z": 64
+	},
+	"players": {
+		"min": 1,
+		"max": 32
+	}
+}
