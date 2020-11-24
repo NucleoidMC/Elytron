@@ -1,5 +1,6 @@
 {
 	"type": "elytron:elytron",
+	"name": "Elytron",
 	"map": {
 		"x": 64,
 		"y": 64,

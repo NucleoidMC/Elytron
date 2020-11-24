@@ -1,13 +1,11 @@
 package io.github.haykam821.elytron.game.map;
 
 import java.util.Random;
-import java.util.concurrent.CompletableFuture;
 
 import io.github.haykam821.elytron.game.ElytronConfig;
 import net.minecraft.block.BlockState;
-import net.minecraft.util.Util;
 import net.minecraft.util.math.BlockPos;
-import xyz.nucleoid.plasmid.game.map.template.MapTemplate;
+import xyz.nucleoid.plasmid.map.template.MapTemplate;
 import xyz.nucleoid.plasmid.util.BlockBounds;
 
 public class ElytronMapBuilder {
@@ -17,16 +15,14 @@ public class ElytronMapBuilder {
 		this.config = config;
 	}
 
-	public CompletableFuture<ElytronMap> create() {
-		return CompletableFuture.supplyAsync(() -> {
-			MapTemplate template = MapTemplate.createEmpty();
-			ElytronMapConfig mapConfig = this.config.getMapConfig();
+	public ElytronMap create() {
+		MapTemplate template = MapTemplate.createEmpty();
+		ElytronMapConfig mapConfig = this.config.getMapConfig();
 
-			BlockBounds bounds = new BlockBounds(BlockPos.ORIGIN, new BlockPos(mapConfig.getX(), mapConfig.getY(), mapConfig.getZ()));
-			this.build(bounds, template, mapConfig);
+		BlockBounds bounds = new BlockBounds(BlockPos.ORIGIN, new BlockPos(mapConfig.getX(), mapConfig.getY(), mapConfig.getZ()));
+		this.build(bounds, template, mapConfig);
 
-			return new ElytronMap(template, bounds);
-		}, Util.getMainWorkerExecutor());
+		return new ElytronMap(template, bounds);
 	}
 
 	private BlockState getBlockState(BlockPos pos, BlockBounds bounds, ElytronMapConfig mapConfig, Random random) {
@@ -42,7 +38,7 @@ public class ElytronMapBuilder {
 
 	public void build(BlockBounds bounds, MapTemplate template, ElytronMapConfig mapConfig) {
 		Random random = new Random();
-		for (BlockPos pos : bounds.iterate()) {
+		for (BlockPos pos : bounds) {
 			BlockState state = this.getBlockState(pos, bounds, mapConfig, random);
 			if (state != null) {
 				template.setBlockState(pos, state);

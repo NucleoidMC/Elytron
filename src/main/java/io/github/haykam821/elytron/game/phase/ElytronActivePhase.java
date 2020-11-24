@@ -37,8 +37,8 @@ import net.minecraft.util.TypedActionResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.GameMode;
-import xyz.nucleoid.plasmid.game.Game;
-import xyz.nucleoid.plasmid.game.GameWorld;
+import xyz.nucleoid.plasmid.game.GameLogic;
+import xyz.nucleoid.plasmid.game.GameSpace;
 import xyz.nucleoid.plasmid.game.event.GameOpenListener;
 import xyz.nucleoid.plasmid.game.event.GameTickListener;
 import xyz.nucleoid.plasmid.game.event.PlayerAddListener;
@@ -54,7 +54,7 @@ public class ElytronActivePhase {
 	private static final int ELYTRA_OPEN_TICKS = 40;
 
 	private final ServerWorld world;
-	private final GameWorld gameWorld;
+	private final GameSpace gameSpace;
 	private final ElytronMap map;
 	private final ElytronConfig config;
 	private final Set<ServerPlayerEntity> players = new HashSet<>();
@@ -63,14 +63,14 @@ public class ElytronActivePhase {
 	private boolean opened;
 	private int invulnerabilityTicks = STARTING_INVULNERABILITY_TICKS;
 
-	public ElytronActivePhase(GameWorld gameWorld, ElytronMap map, ElytronConfig config) {
-		this.world = gameWorld.getWorld();
-		this.gameWorld = gameWorld;
+	public ElytronActivePhase(GameSpace gameSpace, ElytronMap map, ElytronConfig config) {
+		this.world = gameSpace.getWorld();
+		this.gameSpace = gameSpace;
 		this.map = map;
 		this.config = config;
 	}
 
-	public static void setRules(Game game) {
+	public static void setRules(GameLogic game) {
 		game.setRule(GameRule.BLOCK_DROPS, RuleResult.DENY);
 		game.setRule(GameRule.CRAFTING, RuleResult.DENY);
 		game.setRule(GameRule.FALL_DAMAGE, RuleResult.DENY);
@@ -80,11 +80,9 @@ public class ElytronActivePhase {
 		game.setRule(GameRule.THROW_ITEMS, RuleResult.DENY);
 	}
 
-	public static void open(GameWorld gameWorld, ElytronMap map, ElytronConfig config) {
-		ElytronActivePhase phase = new ElytronActivePhase(gameWorld, map, config);
-		phase.players.addAll(gameWorld.getPlayers());
-
-		gameWorld.openGame(game -> {
+	public static void open(GameSpace gameSpace, ElytronMap map, ElytronConfig config) {
+		ElytronActivePhase phase = new ElytronActivePhase(gameSpace, map, config);
+		gameSpace.openGame(game -> {
 			ElytronActivePhase.setRules(game);
 
 			// Listeners
@@ -119,16 +117,15 @@ public class ElytronActivePhase {
 	}
 
 	private void open() {
-		this.opened = true;
-		this.singleplayer = this.players.size() == 1;
-
 		ElytronMapConfig mapConfig = this.config.getMapConfig();
 		int spawnRadius = (Math.min(mapConfig.getZ(), mapConfig.getX()) - 10) / 2;
 
 		Vec3d center = this.map.getInnerBox().getCenter();
 
 		int index = 0;
- 		for (ServerPlayerEntity player : this.players) {
+ 		for (ServerPlayerEntity player : this.gameSpace.getPlayers()) {
+			this.players.add(player);
+	
 			player.setGameMode(GameMode.ADVENTURE);
 			player.addStatusEffect(new StatusEffectInstance(StatusEffects.LEVITATION, STARTING_INVULNERABILITY_TICKS - ELYTRA_OPEN_TICKS, 15, true, false));
 
@@ -139,8 +136,11 @@ public class ElytronActivePhase {
 			double x = center.getX() + Math.sin(theta) * spawnRadius;
 			double z = center.getZ() + Math.cos(theta) * spawnRadius;
 
-			player.teleport(this.gameWorld.getWorld(), x, this.map.getInnerBox().minY, z, (float) theta - 180, 0);
+			player.teleport(this.gameSpace.getWorld(), x, this.map.getInnerBox().minY, z, (float) theta - 180, 0);
 		}
+
+		this.opened = true;
+		this.singleplayer = this.players.size() == 1;
 	}
 
 	private void addTrailBlock(Block block, BlockPos pos, int ticks) {
@@ -155,7 +155,7 @@ public class ElytronActivePhase {
 			this.invulnerabilityTicks -= 1;
 		}
 		if (this.invulnerabilityTicks == ELYTRA_OPEN_TICKS) {
-			this.gameWorld.getPlayerSet().sendTitle(new TranslatableText("text.elytron.open_elytra").formatted(Formatting.BLUE), 5, 60, 5);
+			this.gameSpace.getPlayers().sendTitle(new TranslatableText("text.elytron.open_elytra").formatted(Formatting.BLUE), 5, 60, 5);
 		}
 		
 		BlockPos.Mutable trailPos = new BlockPos.Mutable();
@@ -220,9 +220,9 @@ public class ElytronActivePhase {
 		if (this.players.size() < 2) {
 			if (this.players.size() == 1 && this.singleplayer) return;
 			
-			this.gameWorld.getPlayerSet().sendMessage(this.getEndingMessage());
+			this.gameSpace.getPlayers().sendMessage(this.getEndingMessage());
 
-			this.gameWorld.close();
+			this.gameSpace.close();
 		}
 	}
 
@@ -252,7 +252,7 @@ public class ElytronActivePhase {
 
 	private void eliminate(ServerPlayerEntity eliminatedPlayer, String reason, boolean remove) {
 		Text message = new TranslatableText(reason, eliminatedPlayer.getDisplayName()).formatted(Formatting.RED);
-		for (ServerPlayerEntity player : this.gameWorld.getPlayers()) {
+		for (ServerPlayerEntity player : this.gameSpace.getPlayers()) {
 			player.sendMessage(message, false);
 		}
 
@@ -266,7 +266,7 @@ public class ElytronActivePhase {
 		this.eliminate(eliminatedPlayer, "text.elytron.eliminated", remove);
 	}
 
-	private boolean onPlayerDamage(ServerPlayerEntity player, DamageSource source, float amount) {
+	private ActionResult onPlayerDamage(ServerPlayerEntity player, DamageSource source, float amount) {
 		if (source == DamageSource.FLY_INTO_WALL) {
 			if (this.map.getInnerInnerBox().contains(player.getPos())) {
 				this.eliminate(player, "text.elytron.eliminated.fly_into_trail", true);
@@ -276,7 +276,7 @@ public class ElytronActivePhase {
 		} else if (source == DamageSource.FALL) {
 			this.eliminate(player, "text.elytron.eliminated.fall", true);
 		}
-		return true;
+		return ActionResult.FAIL;
 	}
 
 	private ActionResult onPlayerDeath(ServerPlayerEntity player, DamageSource source) {
