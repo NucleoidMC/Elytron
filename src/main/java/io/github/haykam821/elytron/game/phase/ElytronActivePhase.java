@@ -143,10 +143,10 @@ public class ElytronActivePhase {
 		this.singleplayer = this.players.size() == 1;
 	}
 
-	private void addTrailBlock(Block block, BlockPos pos, int ticks) {
-		this.trailPositions.putIfAbsent(block, new Long2IntOpenHashMap());
+	private void addTrailBlock(Block block, BlockPos pos, int ticks, Map<Block, Long2IntMap> trailPositions) {
+		trailPositions.putIfAbsent(block, new Long2IntOpenHashMap());
 
-		Long2IntMap map = this.trailPositions.get(block);
+		Long2IntMap map = trailPositions.get(block);
 		map.put(pos.asLong(), ticks);
 	}
 
@@ -159,7 +159,11 @@ public class ElytronActivePhase {
 		}
 		
 		BlockPos.Mutable trailPos = new BlockPos.Mutable();
-		for (Map.Entry<Block, Long2IntMap> blockEntry : this.trailPositions.entrySet()) {
+
+		Map<Block, Long2IntMap> temporaryTrailPositions = new HashMap<>();;
+		Iterator<Map.Entry<Block, Long2IntMap>> blockEntryIterator = this.trailPositions.entrySet().iterator();
+		while (blockEntryIterator.hasNext()) {
+			Map.Entry<Block, Long2IntMap> blockEntry = blockEntryIterator.next();
 			BlockState state = blockEntry.getKey().getDefaultState();
 
 			ObjectIterator<Long2IntMap.Entry> iterator = Long2IntMaps.fastIterator(blockEntry.getValue());
@@ -175,7 +179,7 @@ public class ElytronActivePhase {
 						this.world.setBlockState(trailPos, state);
 
 						if (!state.isAir() && this.config.getDecay() >= 0) {
-							this.addTrailBlock(Blocks.AIR, trailPos, this.config.getDecay());
+							this.addTrailBlock(Blocks.AIR, trailPos, this.config.getDecay(), temporaryTrailPositions);
 						}
 					}
 
@@ -185,6 +189,7 @@ public class ElytronActivePhase {
 				}
 			}
 		}
+		this.trailPositions.putAll(temporaryTrailPositions);
 
 		Iterator<ServerPlayerEntity> playerIterator = this.players.iterator();
 		int index = 0;
@@ -210,7 +215,7 @@ public class ElytronActivePhase {
 
 				for (int y = 0; y < this.config.getHeight(); y++) {
 					trailPos.setY(player.getBlockPos().getY() + y);
-					this.addTrailBlock(Main.getTrailBlock(index), trailPos, this.config.getDelay());
+					this.addTrailBlock(Main.getTrailBlock(index), trailPos, this.config.getDelay(), this.trailPositions);
 				}
 			}
 
