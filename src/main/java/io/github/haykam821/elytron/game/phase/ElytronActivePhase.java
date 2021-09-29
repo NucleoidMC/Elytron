@@ -25,7 +25,7 @@ import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
@@ -100,7 +100,7 @@ public class ElytronActivePhase {
 		ItemStack stack = new ItemStack(Items.ELYTRA);
 		stack.addEnchantment(Enchantments.BINDING_CURSE, 1);
 
-		CompoundTag tag = stack.getOrCreateTag();
+		NbtCompound tag = stack.getOrCreateTag();
 		tag.putBoolean("Unbreakable", true);
 
 		return stack;
