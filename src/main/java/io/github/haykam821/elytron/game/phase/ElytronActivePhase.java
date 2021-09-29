@@ -37,6 +37,7 @@ import net.minecraft.util.TypedActionResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.GameMode;
+import xyz.nucleoid.plasmid.game.GameCloseReason;
 import xyz.nucleoid.plasmid.game.GameLogic;
 import xyz.nucleoid.plasmid.game.GameSpace;
 import xyz.nucleoid.plasmid.game.event.GameOpenListener;
@@ -227,7 +228,7 @@ public class ElytronActivePhase {
 			
 			this.gameSpace.getPlayers().sendMessage(this.getEndingMessage());
 
-			this.gameSpace.close();
+			this.gameSpace.close(GameCloseReason.FINISHED);
 		}
 	}
 
