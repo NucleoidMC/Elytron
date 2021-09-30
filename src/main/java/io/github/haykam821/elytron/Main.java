@@ -17,7 +17,7 @@ public class Main implements ModInitializer {
 	private static final List<Block> TRAIL_BLOCKS = new ArrayList<>();
 
 	private static final Identifier ELYTRON_ID = new Identifier(MOD_ID, "elytron");
-	public static final GameType<ElytronConfig> ELYTRON_TYPE = GameType.register(ELYTRON_ID, ElytronWaitingPhase::open, ElytronConfig.CODEC);
+	public static final GameType<ElytronConfig> ELYTRON_TYPE = GameType.register(ELYTRON_ID, ElytronConfig.CODEC, ElytronWaitingPhase::open);
 
 	@Override
 	public void onInitialize() {

@@ -1,4 +1,5 @@
 {
+	"game.elytron.standard_elytron": "Elytron",
 	"gameType.elytron.elytron": "Elytron",
 	"text.elytron.eliminated": "%s has been eliminated!",
 	"text.elytron.eliminated.elytra_not_opened": "%s has been eliminated by not opening their elytra!",
