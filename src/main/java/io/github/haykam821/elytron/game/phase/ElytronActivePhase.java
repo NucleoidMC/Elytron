@@ -41,6 +41,8 @@ import xyz.nucleoid.plasmid.game.GameCloseReason;
 import xyz.nucleoid.plasmid.game.GameSpace;
 import xyz.nucleoid.plasmid.game.event.GameActivityEvents;
 import xyz.nucleoid.plasmid.game.event.GamePlayerEvents;
+import xyz.nucleoid.plasmid.game.player.PlayerOffer;
+import xyz.nucleoid.plasmid.game.player.PlayerOfferResult;
 import xyz.nucleoid.plasmid.game.rule.GameRuleType;
 import xyz.nucleoid.stimuli.event.item.ItemUseEvent;
 import xyz.nucleoid.stimuli.event.player.PlayerDamageEvent;
@@ -57,7 +59,6 @@ public class ElytronActivePhase {
 	private final Set<ServerPlayerEntity> players = new HashSet<>();
 	private boolean singleplayer;
 	private final Map<Block, Long2IntMap> trailPositions = new HashMap<>();
-	private boolean opened;
 	private int invulnerabilityTicks = STARTING_INVULNERABILITY_TICKS;
 
 	public ElytronActivePhase(GameSpace gameSpace, ServerWorld world, ElytronMap map, ElytronConfig config) {
@@ -85,7 +86,7 @@ public class ElytronActivePhase {
 			// Listeners
 			activity.listen(GameActivityEvents.ENABLE, phase::enable);
 			activity.listen(GameActivityEvents.TICK, phase::tick);
-			activity.listen(GamePlayerEvents.ADD, phase::addPlayer);
+			activity.listen(GamePlayerEvents.OFFER, phase::offerPlayer);
 			activity.listen(GamePlayerEvents.REMOVE, phase::removePlayer);
 			activity.listen(PlayerDamageEvent.EVENT, phase::onPlayerDamage);
 			activity.listen(PlayerDeathEvent.EVENT, phase::onPlayerDeath);
@@ -139,7 +140,6 @@ public class ElytronActivePhase {
 			player.teleport(this.world, x, this.map.getInnerBox().minY, z, (float) theta - 180, 0);
 		}
 
-		this.opened = true;
 		this.singleplayer = this.players.size() == 1;
 	}
 
@@ -243,12 +243,10 @@ public class ElytronActivePhase {
 		player.changeGameMode(GameMode.SPECTATOR);
 	}
 
-	private void addPlayer(ServerPlayerEntity player) {
-		if (!this.players.contains(player)) {
-			this.setSpectator(player);
-		} else if (this.opened) {
-			this.removePlayer(player);
-		}
+	private PlayerOfferResult offerPlayer(PlayerOffer offer) {
+		return offer.accept(this.world, this.map.getWaitingSpawnPos()).and(() -> {
+			this.setSpectator(offer.player());
+		});
 	}
 
 	private void removePlayer(ServerPlayerEntity player) {
