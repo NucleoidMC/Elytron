@@ -251,6 +251,8 @@ public class ElytronActivePhase {
 	}
 
 	private void eliminate(ServerPlayerEntity eliminatedPlayer, String reason, boolean remove) {
+		if (!this.players.containsKey(eliminatedPlayer)) return;
+
 		Text message = new TranslatableText(reason, eliminatedPlayer.getDisplayName()).formatted(Formatting.RED);
 		for (ServerPlayerEntity player : this.gameSpace.getPlayers()) {
 			player.sendMessage(message, false);
