@@ -1,10 +1,8 @@
 package io.github.haykam821.elytron.game.phase;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 
 import io.github.haykam821.elytron.Main;
 import io.github.haykam821.elytron.game.ElytronConfig;
@@ -56,7 +54,7 @@ public class ElytronActivePhase {
 	private final GameSpace gameSpace;
 	private final ElytronMap map;
 	private final ElytronConfig config;
-	private final Set<ServerPlayerEntity> players = new HashSet<>();
+	private final Map<ServerPlayerEntity, Block> players = new HashMap<>();
 	private boolean singleplayer;
 	private final Map<Block, Long2IntMap> trailPositions = new HashMap<>();
 	private int invulnerabilityTicks = STARTING_INVULNERABILITY_TICKS;
@@ -125,7 +123,7 @@ public class ElytronActivePhase {
 
 		int index = 0;
  		for (ServerPlayerEntity player : this.gameSpace.getPlayers()) {
-			this.players.add(player);
+			this.players.put(player, Main.getTrailBlock(index));
 	
 			player.changeGameMode(GameMode.ADVENTURE);
 			player.addStatusEffect(new StatusEffectInstance(StatusEffects.LEVITATION, STARTING_INVULNERABILITY_TICKS - ELYTRA_OPEN_TICKS, 15, true, false));
@@ -191,10 +189,10 @@ public class ElytronActivePhase {
 		}
 		this.trailPositions.putAll(temporaryTrailPositions);
 
-		Iterator<ServerPlayerEntity> playerIterator = this.players.iterator();
-		int index = 0;
+		Iterator<Map.Entry<ServerPlayerEntity, Block>> playerIterator = this.players.entrySet().iterator();
 		while (playerIterator.hasNext()) {
-			ServerPlayerEntity player = playerIterator.next();
+			Map.Entry<ServerPlayerEntity, Block> entry = playerIterator.next();
+			ServerPlayerEntity player = entry.getKey();
 			if (!this.map.getInnerBox().expand(0.5).contains(player.getPos())) {
 				this.eliminate(player, "text.elytron.eliminated.out_of_bounds", false);
 				playerIterator.remove();
@@ -213,13 +211,12 @@ public class ElytronActivePhase {
 					playerIterator.remove();
 				}
 
+				Block trailBlock = entry.getValue();
 				for (int y = 0; y < this.config.getHeight(); y++) {
 					trailPos.setY(player.getBlockPos().getY() + y);
-					this.addTrailBlock(Main.getTrailBlock(index), trailPos, this.config.getDelay(), this.trailPositions);
+					this.addTrailBlock(trailBlock, trailPos, this.config.getDelay(), this.trailPositions);
 				}
 			}
-
-			index += 1;
 		}
 
 		if (this.players.size() < 2) {
@@ -233,7 +230,7 @@ public class ElytronActivePhase {
 
 	private Text getEndingMessage() {
 		if (this.players.size() == 1) {
-			ServerPlayerEntity winner = this.players.iterator().next();
+			ServerPlayerEntity winner = this.players.keySet().iterator().next();
 			return new TranslatableText("text.elytron.win", winner.getDisplayName()).formatted(Formatting.GOLD);
 		}
 		return new TranslatableText("text.elytron.win.none").formatted(Formatting.GOLD);
