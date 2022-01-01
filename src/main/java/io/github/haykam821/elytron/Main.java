@@ -21,7 +21,6 @@ public class Main implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
-		return;
 	}
 
 	public static boolean isTrailBlock(Block block) {

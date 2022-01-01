@@ -16,6 +16,7 @@
 			"io.github.haykam821.elytron.Main"
 		]
 	},
+	"accessWidener": "elytron.accesswidener",
 	"license": "MIT",
 	"icon": "assets/elytron/icon.png",
 	"depends": {

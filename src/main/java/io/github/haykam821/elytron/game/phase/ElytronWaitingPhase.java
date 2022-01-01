@@ -21,30 +21,22 @@ import xyz.nucleoid.plasmid.game.player.PlayerOffer;
 import xyz.nucleoid.plasmid.game.player.PlayerOfferResult;
 import xyz.nucleoid.stimuli.event.player.PlayerDeathEvent;
 
-public class ElytronWaitingPhase {
-	private final GameSpace gameSpace;
-	private final ServerWorld world;
-	private final ElytronMap map;
-	private final ElytronConfig config;
-
-	public ElytronWaitingPhase(GameSpace gameSpace, ServerWorld world, ElytronMap map, ElytronConfig config) {
-		this.gameSpace = gameSpace;
-		this.world = world;
-		this.map = map;
-		this.config = config;
-	}
+public record ElytronWaitingPhase(GameSpace gameSpace,
+								  ServerWorld world,
+								  ElytronMap map,
+								  ElytronConfig config) {
 
 	public static GameOpenProcedure open(GameOpenContext<ElytronConfig> context) {
 		ElytronMapBuilder mapBuilder = new ElytronMapBuilder(context.config());
 		ElytronMap map = mapBuilder.create();
 
 		RuntimeWorldConfig worldConfig = new RuntimeWorldConfig()
-			.setGenerator(map.createGenerator(context.server()));
+				.setGenerator(map.createGenerator(context.server()));
 
 		return context.openWithWorld(worldConfig, (activity, world) -> {
 			ElytronWaitingPhase phase = new ElytronWaitingPhase(activity.getGameSpace(), world, map, context.config());
 
-			GameWaitingLobby.addTo(activity, context.config().getPlayerConfig());
+			GameWaitingLobby.addTo(activity, context.config().playerConfig());
 			ElytronActivePhase.setRules(activity);
 
 			// Listeners
@@ -60,9 +52,9 @@ public class ElytronWaitingPhase {
 	}
 
 	private PlayerOfferResult offerPlayer(PlayerOffer offer) {
-		return offer.accept(this.world, this.map.getWaitingSpawnPos()).and(() -> {
-			offer.player().changeGameMode(GameMode.ADVENTURE);
-		});
+		return offer.accept(this.world, this.map.getWaitingSpawnPos()).and(() ->
+			offer.player().changeGameMode(GameMode.ADVENTURE)
+		);
 	}
 
 	private ActionResult onPlayerDeath(ServerPlayerEntity player, DamageSource source) {

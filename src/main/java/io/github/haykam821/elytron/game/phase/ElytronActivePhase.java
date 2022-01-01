@@ -116,8 +116,8 @@ public class ElytronActivePhase {
 	}
 
 	private void enable() {
-		ElytronMapConfig mapConfig = this.config.getMapConfig();
-		int spawnRadius = (Math.min(mapConfig.getZ(), mapConfig.getX()) - 10) / 2;
+		ElytronMapConfig mapConfig = this.config.mapConfig();
+		int spawnRadius = (Math.min(mapConfig.z(), mapConfig.x()) - 10) / 2;
 
 		Vec3d center = this.map.getInnerBox().getCenter();
 
@@ -158,10 +158,8 @@ public class ElytronActivePhase {
 		
 		BlockPos.Mutable trailPos = new BlockPos.Mutable();
 
-		Map<Block, Long2IntMap> temporaryTrailPositions = new HashMap<>();;
-		Iterator<Map.Entry<Block, Long2IntMap>> blockEntryIterator = this.trailPositions.entrySet().iterator();
-		while (blockEntryIterator.hasNext()) {
-			Map.Entry<Block, Long2IntMap> blockEntry = blockEntryIterator.next();
+		Map<Block, Long2IntMap> temporaryTrailPositions = new HashMap<>();
+		for (Map.Entry<Block, Long2IntMap> blockEntry : this.trailPositions.entrySet()) {
 			BlockState state = blockEntry.getKey().getDefaultState();
 
 			ObjectIterator<Long2IntMap.Entry> iterator = Long2IntMaps.fastIterator(blockEntry.getValue());
@@ -176,8 +174,8 @@ public class ElytronActivePhase {
 					if (this.map.getInnerBox().contains(trailPos.getX(), trailPos.getY(), trailPos.getZ())) {
 						this.world.setBlockState(trailPos, state);
 
-						if (!state.isAir() && this.config.getDecay() >= 0) {
-							this.addTrailBlock(Blocks.AIR, trailPos, this.config.getDecay(), temporaryTrailPositions);
+						if (!state.isAir() && this.config.decay() >= 0) {
+							this.addTrailBlock(Blocks.AIR, trailPos, this.config.decay(), temporaryTrailPositions);
 						}
 					}
 
@@ -212,9 +210,9 @@ public class ElytronActivePhase {
 				}
 
 				Block trailBlock = entry.getValue();
-				for (int y = 0; y < this.config.getHeight(); y++) {
+				for (int y = 0; y < this.config.height(); y++) {
 					trailPos.setY(player.getBlockPos().getY() + y);
-					this.addTrailBlock(trailBlock, trailPos, this.config.getDelay(), this.trailPositions);
+					this.addTrailBlock(trailBlock, trailPos, this.config.delay(), this.trailPositions);
 				}
 			}
 		}
@@ -241,9 +239,9 @@ public class ElytronActivePhase {
 	}
 
 	private PlayerOfferResult offerPlayer(PlayerOffer offer) {
-		return offer.accept(this.world, this.map.getWaitingSpawnPos()).and(() -> {
-			this.setSpectator(offer.player());
-		});
+		return offer.accept(this.world, this.map.getWaitingSpawnPos()).and(() ->
+			this.setSpectator(offer.player())
+		);
 	}
 
 	private void removePlayer(ServerPlayerEntity player) {
