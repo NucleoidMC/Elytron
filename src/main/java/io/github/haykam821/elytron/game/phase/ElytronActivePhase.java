@@ -1,11 +1,14 @@
 package io.github.haykam821.elytron.game.phase;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 
 import io.github.haykam821.elytron.Main;
 import io.github.haykam821.elytron.game.ElytronConfig;
+import io.github.haykam821.elytron.game.PlayerEntry;
 import io.github.haykam821.elytron.game.map.ElytronMap;
 import io.github.haykam821.elytron.game.map.ElytronMapConfig;
 import it.unimi.dsi.fastutil.longs.Long2IntMap;
@@ -15,14 +18,12 @@ import it.unimi.dsi.fastutil.objects.ObjectIterator;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
-import net.minecraft.enchantment.Enchantments;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.packet.s2c.play.TitleFadeS2CPacket;
 import net.minecraft.network.packet.s2c.play.TitleS2CPacket;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -56,7 +57,7 @@ public class ElytronActivePhase {
 	private final GameSpace gameSpace;
 	private final ElytronMap map;
 	private final ElytronConfig config;
-	private final Map<ServerPlayerEntity, Block> players = new HashMap<>();
+	private final Set<PlayerEntry> players = new HashSet<>();
 	private boolean singleplayer;
 	private final Map<Block, Long2IntMap> trailPositions = new HashMap<>();
 	private int invulnerabilityTicks = STARTING_INVULNERABILITY_TICKS;
@@ -94,29 +95,6 @@ public class ElytronActivePhase {
 		});
 	}
 
-	private ItemStack getElytraStack() {
-		ItemStack stack = new ItemStack(Items.ELYTRA);
-		stack.addEnchantment(Enchantments.BINDING_CURSE, 1);
-
-		NbtCompound tag = stack.getOrCreateNbt();
-		tag.putBoolean("Unbreakable", true);
-
-		return stack;
-	}
-
-	private ItemStack getFireworkRocketStack() {
-		return new ItemStack(Items.FIREWORK_ROCKET);
-	}
-
-	private void fillHotbarWithFireworkRockets(ServerPlayerEntity player) {
-		for (int slot = 0; slot < 9; slot++) {
-			player.getInventory().setStack(slot, this.getFireworkRocketStack());
-		}
-
-		player.currentScreenHandler.sendContentUpdates();
-		player.playerScreenHandler.onContentChanged(player.getInventory());
-	}
-
 	private void enable() {
 		ElytronMapConfig mapConfig = this.config.getMapConfig();
 		int spawnRadius = (Math.min(mapConfig.getZ(), mapConfig.getX()) - 10) / 2;
@@ -125,13 +103,13 @@ public class ElytronActivePhase {
 
 		int index = 0;
  		for (ServerPlayerEntity player : this.gameSpace.getPlayers()) {
-			this.players.put(player, Main.getTrailBlock(index));
+			this.players.add(new PlayerEntry(player, Main.getTrailBlock(index)));
 	
 			player.changeGameMode(GameMode.ADVENTURE);
 			player.addStatusEffect(new StatusEffectInstance(StatusEffects.LEVITATION, STARTING_INVULNERABILITY_TICKS - ELYTRA_OPEN_TICKS, 15, true, false));
 
-			player.equipStack(EquipmentSlot.CHEST, this.getElytraStack());
-			this.fillHotbarWithFireworkRockets(player);
+			player.equipStack(EquipmentSlot.CHEST, PlayerEntry.getElytraStack());
+			PlayerEntry.fillHotbarWithFireworkRockets(player);
 
 			double theta = ((double) index++ / this.players.size()) * 2 * Math.PI;
 			double x = center.getX() + Math.sin(theta) * spawnRadius;
@@ -158,11 +136,8 @@ public class ElytronActivePhase {
 			TitleFadeS2CPacket titleFadePacket = new TitleFadeS2CPacket(5, 60, 5);
 			TitleS2CPacket titlePacket = new TitleS2CPacket(new TranslatableText("text.elytron.open_elytra").formatted(Formatting.BLUE));
 
-			for (ServerPlayerEntity player : this.players.keySet()) {
-				player.networkHandler.sendPacket(titleFadePacket);
-				player.networkHandler.sendPacket(titlePacket);
-
-				player.startFallFlying();
+			for (PlayerEntry player : this.players) {
+				player.startGliding(titleFadePacket, titlePacket);
 			}
 		}
 		
@@ -199,32 +174,32 @@ public class ElytronActivePhase {
 		}
 		this.trailPositions.putAll(temporaryTrailPositions);
 
-		Iterator<Map.Entry<ServerPlayerEntity, Block>> playerIterator = this.players.entrySet().iterator();
+		Iterator<PlayerEntry> playerIterator = this.players.iterator();
 		while (playerIterator.hasNext()) {
-			Map.Entry<ServerPlayerEntity, Block> entry = playerIterator.next();
-			ServerPlayerEntity player = entry.getKey();
+			PlayerEntry entry = playerIterator.next();
+			ServerPlayerEntity player = entry.player();
+
 			if (!this.map.getInnerBox().expand(0.5).contains(player.getPos())) {
-				this.eliminate(player, "text.elytron.eliminated.out_of_bounds", false);
+				this.eliminate(entry, "text.elytron.eliminated.out_of_bounds", false);
 				playerIterator.remove();
 			}
 
 			trailPos.set(player.getX(), player.getY(), player.getZ());
 			BlockState state = this.world.getBlockState(trailPos);
 			if (Main.isTrailBlock(state.getBlock())) {
-				this.eliminate(player, "text.elytron.eliminated.fly_into_trail", false);
+				this.eliminate(entry, "text.elytron.eliminated.fly_into_trail", false);
 				playerIterator.remove();
 			}
 
 			if (this.invulnerabilityTicks == 0) {
 				if (!player.isFallFlying()) {
-					this.eliminate(player, "text.elytron.eliminated.elytra_not_opened", false);
+					this.eliminate(entry, "text.elytron.eliminated.elytra_not_opened", false);
 					playerIterator.remove();
 				}
 
-				Block trailBlock = entry.getValue();
 				for (int y = 0; y < this.config.getHeight(); y++) {
 					trailPos.setY(player.getBlockPos().getY() + y);
-					this.addTrailBlock(trailBlock, trailPos, this.config.getDelay(), this.trailPositions);
+					this.addTrailBlock(entry.trail(), trailPos, this.config.getDelay(), this.trailPositions);
 				}
 			}
 		}
@@ -240,8 +215,7 @@ public class ElytronActivePhase {
 
 	private Text getEndingMessage() {
 		if (this.players.size() == 1) {
-			ServerPlayerEntity winner = this.players.keySet().iterator().next();
-			return new TranslatableText("text.elytron.win", winner.getDisplayName()).formatted(Formatting.GOLD);
+			return this.players.iterator().next().getWinText();
 		}
 		return new TranslatableText("text.elytron.win.none").formatted(Formatting.GOLD);
 	}
@@ -257,11 +231,15 @@ public class ElytronActivePhase {
 	}
 
 	private void removePlayer(ServerPlayerEntity player) {
-		this.eliminate(player, true);
+		PlayerEntry entry = this.getPlayerEntry(player);
+
+		if (entry != null) {
+			this.eliminate(entry, true);
+		}
 	}
 
-	private void eliminate(ServerPlayerEntity eliminatedPlayer, String reason, boolean remove) {
-		if (!this.players.containsKey(eliminatedPlayer)) return;
+	private void eliminate(PlayerEntry eliminatedPlayer, String reason, boolean remove) {
+		if (!this.players.contains(eliminatedPlayer)) return;
 
 		Text message = new TranslatableText(reason, eliminatedPlayer.getDisplayName()).formatted(Formatting.RED);
 		for (ServerPlayerEntity player : this.gameSpace.getPlayers()) {
@@ -271,33 +249,43 @@ public class ElytronActivePhase {
 		if (remove) {
 			this.players.remove(eliminatedPlayer);
 		}
-		this.setSpectator(eliminatedPlayer);
+		this.setSpectator(eliminatedPlayer.player());
 	}
 
-	private void eliminate(ServerPlayerEntity eliminatedPlayer, boolean remove) {
+	private void eliminate(PlayerEntry eliminatedPlayer, boolean remove) {
 		this.eliminate(eliminatedPlayer, "text.elytron.eliminated", remove);
 	}
 
 	private ActionResult onPlayerDamage(ServerPlayerEntity player, DamageSource source, float amount) {
-		if (source == DamageSource.FLY_INTO_WALL) {
-			if (this.map.getInnerInnerBox().contains(player.getPos())) {
-				this.eliminate(player, "text.elytron.eliminated.fly_into_trail", true);
-			} else {
-				this.eliminate(player, "text.elytron.eliminated.fly_into_wall", true);
+		PlayerEntry entry = this.getPlayerEntry(player);
+
+		if (entry != null) {
+			if (source == DamageSource.FLY_INTO_WALL) {
+				if (this.map.getInnerInnerBox().contains(player.getPos())) {
+					this.eliminate(entry, "text.elytron.eliminated.fly_into_trail", true);
+				} else {
+					this.eliminate(entry, "text.elytron.eliminated.fly_into_wall", true);
+				}
+			} else if (source == DamageSource.FALL) {
+				this.eliminate(entry, "text.elytron.eliminated.fall", true);
 			}
-		} else if (source == DamageSource.FALL) {
-			this.eliminate(player, "text.elytron.eliminated.fall", true);
 		}
+
 		return ActionResult.FAIL;
 	}
 
 	private ActionResult onPlayerDeath(ServerPlayerEntity player, DamageSource source) {
-		this.eliminate(player, true);
+		PlayerEntry entry = this.getPlayerEntry(player);
+
+		if (entry != null) {
+			this.eliminate(entry, true);
+		}
+
 		return ActionResult.SUCCESS;
 	}
 
 	private TypedActionResult<ItemStack> onUseItem(ServerPlayerEntity player, Hand hand) {
-		this.fillHotbarWithFireworkRockets(player);
+		PlayerEntry.fillHotbarWithFireworkRockets(player);
 
 		ItemStack handStack = player.getStackInHand(hand);
 		if (handStack.getItem() == Items.FIREWORK_ROCKET && player.isFallFlying()) {
@@ -305,5 +293,15 @@ public class ElytronActivePhase {
 		}
 		
 		return TypedActionResult.pass(handStack);
+	}
+
+	private PlayerEntry getPlayerEntry(ServerPlayerEntity player) {
+		for (PlayerEntry entry : this.players) {
+			if (player == entry.player()) {
+				return entry;
+			}
+		}
+
+		return null;
 	}
 }
