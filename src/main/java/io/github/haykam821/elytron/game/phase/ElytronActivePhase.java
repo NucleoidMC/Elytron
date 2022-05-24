@@ -23,6 +23,8 @@ import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.network.packet.s2c.play.TitleFadeS2CPacket;
+import net.minecraft.network.packet.s2c.play.TitleS2CPacket;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
@@ -153,7 +155,15 @@ public class ElytronActivePhase {
 			this.invulnerabilityTicks -= 1;
 		}
 		if (this.invulnerabilityTicks == ELYTRA_OPEN_TICKS) {
-			this.gameSpace.getPlayers().showTitle(new TranslatableText("text.elytron.open_elytra").formatted(Formatting.BLUE), 5, 60, 5);
+			TitleFadeS2CPacket titleFadePacket = new TitleFadeS2CPacket(5, 60, 5);
+			TitleS2CPacket titlePacket = new TitleS2CPacket(new TranslatableText("text.elytron.open_elytra").formatted(Formatting.BLUE));
+
+			for (ServerPlayerEntity player : this.players.keySet()) {
+				player.networkHandler.sendPacket(titleFadePacket);
+				player.networkHandler.sendPacket(titlePacket);
+
+				player.startFallFlying();
+			}
 		}
 		
 		BlockPos.Mutable trailPos = new BlockPos.Mutable();
