@@ -35,6 +35,7 @@ import net.minecraft.util.Formatting;
 import net.minecraft.util.Hand;
 import net.minecraft.util.TypedActionResult;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.GameMode;
 import xyz.nucleoid.plasmid.game.GameActivity;
@@ -52,6 +53,7 @@ import xyz.nucleoid.stimuli.event.player.PlayerDeathEvent;
 public class ElytronActivePhase {
 	private static final int STARTING_INVULNERABILITY_TICKS = 120;
 	private static final int ELYTRA_OPEN_TICKS = 40;
+	private static final int INTERPOLATION_STEPS = 3;
 
 	private final ServerWorld world;
 	private final GameSpace gameSpace;
@@ -128,6 +130,30 @@ public class ElytronActivePhase {
 		map.put(pos.asLong(), ticks);
 	}
 
+	private void addTrailBlocks(PlayerEntry player, BlockPos.Mutable pos, int ticks, int height, Map<Block, Long2IntMap> trailPositions) {
+		Block trail = player.getTrail();
+
+		Vec3d start = player.getPreviousPos();
+		Vec3d end = player.getPos();
+
+		double relativeX = end.getX() - start.getX();
+		double relativeY = end.getY() - start.getY();
+		double relativeZ = end.getZ() - start.getZ();
+
+		for (int step = 1; step <= INTERPOLATION_STEPS; step++) {
+			double progress = step / (double) INTERPOLATION_STEPS;
+
+			pos.setX((int) (start.getX() + relativeX * progress));
+			pos.setY((int) (start.getY() + relativeY * progress));
+			pos.setZ((int) (start.getZ() + relativeZ * progress));
+
+			for (int y = 0; y < height; y++) {
+				this.addTrailBlock(trail, pos, ticks, trailPositions);
+				pos.move(Direction.UP);
+			}
+		}
+	}
+
 	private void tick() {
 		if (this.invulnerabilityTicks > 0) {
 			this.invulnerabilityTicks -= 1;
@@ -177,9 +203,9 @@ public class ElytronActivePhase {
 		Iterator<PlayerEntry> playerIterator = this.players.iterator();
 		while (playerIterator.hasNext()) {
 			PlayerEntry entry = playerIterator.next();
-			ServerPlayerEntity player = entry.player();
+			ServerPlayerEntity player = entry.getPlayer();
 
-			if (!this.map.getInnerBox().expand(0.5).contains(player.getPos())) {
+			if (!this.map.getInnerBox().expand(0.5).contains(entry.getPos())) {
 				this.eliminate(entry, "text.elytron.eliminated.out_of_bounds", false);
 				playerIterator.remove();
 			}
@@ -197,11 +223,10 @@ public class ElytronActivePhase {
 					playerIterator.remove();
 				}
 
-				for (int y = 0; y < this.config.getHeight(); y++) {
-					trailPos.setY(player.getBlockPos().getY() + y);
-					this.addTrailBlock(entry.trail(), trailPos, this.config.getDelay(), this.trailPositions);
-				}
+				this.addTrailBlocks(entry, trailPos, this.config.getDelay(), this.config.getHeight(), this.trailPositions);
 			}
+
+			entry.updatePreviousPos();
 		}
 
 		if (this.players.size() < 2) {
@@ -249,7 +274,7 @@ public class ElytronActivePhase {
 		if (remove) {
 			this.players.remove(eliminatedPlayer);
 		}
-		this.setSpectator(eliminatedPlayer.player());
+		this.setSpectator(eliminatedPlayer.getPlayer());
 	}
 
 	private void eliminate(PlayerEntry eliminatedPlayer, boolean remove) {
@@ -297,7 +322,7 @@ public class ElytronActivePhase {
 
 	private PlayerEntry getPlayerEntry(ServerPlayerEntity player) {
 		for (PlayerEntry entry : this.players) {
-			if (player == entry.player()) {
+			if (player == entry.getPlayer()) {
 				return entry;
 			}
 		}

@@ -11,8 +11,21 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.text.TranslatableText;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.math.Vec3d;
 
-public record PlayerEntry(ServerPlayerEntity player, Block trail) {
+public class PlayerEntry {
+	private final ServerPlayerEntity player;
+	private final Block trail;
+
+	private Vec3d previousPos;
+
+	public PlayerEntry(ServerPlayerEntity player, Block trail) {
+		this.player = player;
+		this.trail = trail;
+
+		this.updatePreviousPos();
+	}
+
 	public void startGliding(TitleFadeS2CPacket titleFadePacket, TitleS2CPacket titlePacket) {
 		this.player.networkHandler.sendPacket(titleFadePacket);
 		this.player.networkHandler.sendPacket(titlePacket);
@@ -26,6 +39,28 @@ public record PlayerEntry(ServerPlayerEntity player, Block trail) {
 
 	public Text getWinText() {
 		return new TranslatableText("text.elytron.win", this.getDisplayName()).formatted(Formatting.GOLD);
+	}
+
+	// Getters
+	public ServerPlayerEntity getPlayer() {
+		return this.player;
+	}
+
+	public Block getTrail() {
+		return this.trail;
+	}
+
+	// Position
+	public Vec3d getPos() {
+		return this.player.getPos();
+	}
+
+	public Vec3d getPreviousPos() {
+		return this.previousPos;
+	}
+
+	public void updatePreviousPos() {
+		this.previousPos = this.getPos();
 	}
 
 	// Inventory
