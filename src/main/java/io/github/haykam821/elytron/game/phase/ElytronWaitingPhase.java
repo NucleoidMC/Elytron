@@ -36,7 +36,7 @@ public class ElytronWaitingPhase {
 
 	public static GameOpenProcedure open(GameOpenContext<ElytronConfig> context) {
 		ElytronMapBuilder mapBuilder = new ElytronMapBuilder(context.config());
-		ElytronMap map = mapBuilder.create();
+		ElytronMap map = mapBuilder.create(context.server().getOverworld().getRandom());
 
 		RuntimeWorldConfig worldConfig = new RuntimeWorldConfig()
 			.setGenerator(map.createGenerator(context.server()));

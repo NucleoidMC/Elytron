@@ -9,7 +9,6 @@ import net.minecraft.network.packet.s2c.play.TitleFadeS2CPacket;
 import net.minecraft.network.packet.s2c.play.TitleS2CPacket;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
-import net.minecraft.text.TranslatableText;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.math.Vec3d;
 
@@ -38,7 +37,7 @@ public class PlayerEntry {
 	}
 
 	public Text getWinText() {
-		return new TranslatableText("text.elytron.win", this.getDisplayName()).formatted(Formatting.GOLD);
+		return Text.translatable("text.elytron.win", this.getDisplayName()).formatted(Formatting.GOLD);
 	}
 
 	// Getters
