@@ -29,7 +29,6 @@ import net.minecraft.network.packet.s2c.play.TitleS2CPacket;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
-import net.minecraft.text.TranslatableText;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Hand;
@@ -160,7 +159,7 @@ public class ElytronActivePhase {
 		}
 		if (this.invulnerabilityTicks == ELYTRA_OPEN_TICKS) {
 			TitleFadeS2CPacket titleFadePacket = new TitleFadeS2CPacket(5, 60, 5);
-			TitleS2CPacket titlePacket = new TitleS2CPacket(new TranslatableText("text.elytron.open_elytra").formatted(Formatting.BLUE));
+			TitleS2CPacket titlePacket = new TitleS2CPacket(Text.translatable("text.elytron.open_elytra").formatted(Formatting.BLUE));
 
 			for (PlayerEntry player : this.players) {
 				player.startGliding(titleFadePacket, titlePacket);
@@ -242,7 +241,7 @@ public class ElytronActivePhase {
 		if (this.players.size() == 1) {
 			return this.players.iterator().next().getWinText();
 		}
-		return new TranslatableText("text.elytron.win.none").formatted(Formatting.GOLD);
+		return Text.translatable("text.elytron.win.none").formatted(Formatting.GOLD);
 	}
 
 	private void setSpectator(ServerPlayerEntity player) {
@@ -266,7 +265,7 @@ public class ElytronActivePhase {
 	private void eliminate(PlayerEntry eliminatedPlayer, String reason, boolean remove) {
 		if (!this.players.contains(eliminatedPlayer)) return;
 
-		Text message = new TranslatableText(reason, eliminatedPlayer.getDisplayName()).formatted(Formatting.RED);
+		Text message = Text.translatable(reason, eliminatedPlayer.getDisplayName()).formatted(Formatting.RED);
 		for (ServerPlayerEntity player : this.gameSpace.getPlayers()) {
 			player.sendMessage(message, false);
 		}
