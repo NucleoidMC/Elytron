@@ -4,6 +4,9 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 
 import io.github.haykam821.elytron.game.map.ElytronMapConfig;
+import net.minecraft.SharedConstants;
+import net.minecraft.util.math.intprovider.ConstantIntProvider;
+import net.minecraft.util.math.intprovider.IntProvider;
 import xyz.nucleoid.plasmid.game.common.config.PlayerConfig;
 
 public class ElytronConfig {
@@ -11,6 +14,7 @@ public class ElytronConfig {
 		return instance.group(
 			ElytronMapConfig.CODEC.fieldOf("map").forGetter(ElytronConfig::getMapConfig),
 			PlayerConfig.CODEC.fieldOf("players").forGetter(ElytronConfig::getPlayerConfig),
+			IntProvider.NON_NEGATIVE_CODEC.optionalFieldOf("ticks_until_close", ConstantIntProvider.create(SharedConstants.TICKS_PER_SECOND * 5)).forGetter(ElytronConfig::getTicksUntilClose),
 			Codec.INT.optionalFieldOf("height", 2).forGetter(ElytronConfig::getHeight),
 			Codec.INT.optionalFieldOf("delay", 15).forGetter(ElytronConfig::getDelay),
 			Codec.INT.optionalFieldOf("decay", 200).forGetter(ElytronConfig::getDecay)
@@ -19,13 +23,15 @@ public class ElytronConfig {
 
 	private final ElytronMapConfig mapConfig;
 	private final PlayerConfig playerConfig;
+	private final IntProvider ticksUntilClose;
 	private final int height;
 	private final int delay;
 	private final int decay;
 
-	public ElytronConfig(ElytronMapConfig mapConfig, PlayerConfig playerConfig, int height, int delay, int decay) {
+	public ElytronConfig(ElytronMapConfig mapConfig, PlayerConfig playerConfig, IntProvider ticksUntilClose, int height, int delay, int decay) {
 		this.mapConfig = mapConfig;
 		this.playerConfig = playerConfig;
+		this.ticksUntilClose = ticksUntilClose;
 		this.height = height;
 		this.delay = delay;
 		this.decay = decay;
@@ -37,6 +43,10 @@ public class ElytronConfig {
 
 	public PlayerConfig getPlayerConfig() {
 		return this.playerConfig;
+	}
+
+	public IntProvider getTicksUntilClose() {
+		return this.ticksUntilClose;
 	}
 
 	public int getHeight() {

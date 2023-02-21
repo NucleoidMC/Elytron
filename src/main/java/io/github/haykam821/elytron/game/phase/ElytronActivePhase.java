@@ -63,6 +63,7 @@ public class ElytronActivePhase {
 	private boolean singleplayer;
 	private final Map<Block, Long2IntMap> trailPositions = new HashMap<>();
 	private int invulnerabilityTicks = STARTING_INVULNERABILITY_TICKS;
+	private int ticksUntilClose = -1;
 
 	public ElytronActivePhase(GameSpace gameSpace, ServerWorld world, ElytronMap map, ElytronConfig config) {
 		this.world = world;
@@ -159,6 +160,16 @@ public class ElytronActivePhase {
 	}
 
 	private void tick() {
+		// Decrease ticks until game end to zero
+		if (this.isGameEnding()) {
+			if (this.ticksUntilClose == 0) {
+				this.gameSpace.close(GameCloseReason.FINISHED);
+			}
+
+			this.ticksUntilClose -= 1;
+			return;
+		}
+
 		if (this.invulnerabilityTicks > 0) {
 			this.invulnerabilityTicks -= 1;
 		}
@@ -238,7 +249,7 @@ public class ElytronActivePhase {
 			
 			this.gameSpace.getPlayers().sendMessage(this.getEndingMessage());
 
-			this.gameSpace.close(GameCloseReason.FINISHED);
+			this.ticksUntilClose = this.config.getTicksUntilClose().get(this.world.getRandom());
 		}
 	}
 
@@ -247,6 +258,10 @@ public class ElytronActivePhase {
 			return this.players.iterator().next().getWinText();
 		}
 		return Text.translatable("text.elytron.win.none").formatted(Formatting.GOLD);
+	}
+
+	private boolean isGameEnding() {
+		return this.ticksUntilClose >= 0;
 	}
 
 	private void setSpectator(ServerPlayerEntity player) {
@@ -268,6 +283,7 @@ public class ElytronActivePhase {
 	}
 
 	private void eliminate(PlayerEntry eliminatedPlayer, String reason, boolean remove) {
+		if (this.isGameEnding()) return;
 		if (!this.players.contains(eliminatedPlayer)) return;
 
 		Text message = Text.translatable(reason, eliminatedPlayer.getDisplayName()).formatted(Formatting.RED);
