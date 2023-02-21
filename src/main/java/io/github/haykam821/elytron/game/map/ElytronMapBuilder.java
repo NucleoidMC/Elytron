@@ -26,11 +26,11 @@ public class ElytronMapBuilder {
 
 	private BlockState getBlockState(BlockPos pos, BlockBounds bounds, ElytronMapConfig mapConfig, Random random) {
 		int layer = pos.getY() - bounds.min().getY();
-		if (layer == 0) return mapConfig.getFloorProvider().getBlockState(random, pos);
-		if (layer == bounds.max().getY()) return mapConfig.getCeilingProvider().getBlockState(random, pos);
+		if (layer == 0) return mapConfig.getFloorProvider().get(random, pos);
+		if (layer == bounds.max().getY()) return mapConfig.getCeilingProvider().get(random, pos);
 
 		if (pos.getX() == bounds.min().getX() || pos.getX() == bounds.max().getX() || pos.getZ() == bounds.min().getZ() || pos.getZ() == bounds.max().getZ()) {
-			return mapConfig.getWallProvider().getBlockState(random, pos);
+			return mapConfig.getWallProvider().get(random, pos);
 		}
 		return null;
 	}
