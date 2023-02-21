@@ -35,6 +35,7 @@ import net.minecraft.util.Hand;
 import net.minecraft.util.TypedActionResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.GameMode;
 import xyz.nucleoid.plasmid.game.GameActivity;
@@ -103,6 +104,8 @@ public class ElytronActivePhase {
 		Vec3d center = this.map.getInnerBox().getCenter();
 
 		int index = 0;
+		int total = this.gameSpace.getPlayers().size();
+
  		for (ServerPlayerEntity player : this.gameSpace.getPlayers()) {
 			this.players.add(new PlayerEntry(player, Main.getTrailBlock(index)));
 	
@@ -112,11 +115,13 @@ public class ElytronActivePhase {
 			player.equipStack(EquipmentSlot.CHEST, PlayerEntry.getElytraStack());
 			PlayerEntry.fillHotbarWithFireworkRockets(player);
 
-			double theta = ((double) index++ / this.players.size()) * 2 * Math.PI;
-			double x = center.getX() + Math.sin(theta) * spawnRadius;
-			double z = center.getZ() + Math.cos(theta) * spawnRadius;
+			double theta = ((double) index++ / total) * 2 * Math.PI;
+			float yaw = (float) theta * MathHelper.DEGREES_PER_RADIAN + 90;
 
-			player.teleport(this.world, x, this.map.getInnerBox().minY, z, (float) theta - 180, 0);
+			double x = center.getX() + Math.cos(theta) * spawnRadius;
+			double z = center.getZ() + Math.sin(theta) * spawnRadius;
+
+			player.teleport(this.world, x, this.map.getInnerBox().minY, z, yaw, 0);
 		}
 
 		this.singleplayer = this.players.size() == 1;
