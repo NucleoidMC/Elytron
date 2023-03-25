@@ -20,12 +20,14 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.damage.DamageSource;
+import net.minecraft.entity.damage.DamageTypes;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.network.packet.s2c.play.TitleFadeS2CPacket;
 import net.minecraft.network.packet.s2c.play.TitleS2CPacket;
+import net.minecraft.registry.tag.DamageTypeTags;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
@@ -305,13 +307,13 @@ public class ElytronActivePhase {
 		PlayerEntry entry = this.getPlayerEntry(player);
 
 		if (entry != null) {
-			if (source == DamageSource.FLY_INTO_WALL) {
+			if (source.isOf(DamageTypes.FLY_INTO_WALL)) {
 				if (this.map.getInnerInnerBox().contains(player.getPos())) {
 					this.eliminate(entry, "text.elytron.eliminated.fly_into_trail", true);
 				} else {
 					this.eliminate(entry, "text.elytron.eliminated.fly_into_wall", true);
 				}
-			} else if (source == DamageSource.FALL) {
+			} else if (source.isIn(DamageTypeTags.IS_FALL)) {
 				this.eliminate(entry, "text.elytron.eliminated.fall", true);
 			}
 		}
