@@ -1,5 +1,6 @@
 {
 	"type": "elytron:elytron",
+	"icon": "minecraft:elytra",
 	"map": {
 		"x": 64,
 		"y": 64,
