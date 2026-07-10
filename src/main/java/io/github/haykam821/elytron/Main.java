@@ -38,14 +38,14 @@ public class Main implements ModInitializer {
 	}
 
 	static {
-		TRAIL_BLOCKS.add(Blocks.RED_STAINED_GLASS);
-		TRAIL_BLOCKS.add(Blocks.BLUE_STAINED_GLASS);
-		TRAIL_BLOCKS.add(Blocks.YELLOW_STAINED_GLASS);
-		TRAIL_BLOCKS.add(Blocks.LIME_STAINED_GLASS);
-		TRAIL_BLOCKS.add(Blocks.PURPLE_STAINED_GLASS);
-		TRAIL_BLOCKS.add(Blocks.ORANGE_STAINED_GLASS);
-		TRAIL_BLOCKS.add(Blocks.BLUE_STAINED_GLASS);
-		TRAIL_BLOCKS.add(Blocks.PINK_STAINED_GLASS);
-		TRAIL_BLOCKS.add(Blocks.MAGENTA_STAINED_GLASS);
+		TRAIL_BLOCKS.add(Blocks.STAINED_GLASS.red());
+		TRAIL_BLOCKS.add(Blocks.STAINED_GLASS.blue());
+		TRAIL_BLOCKS.add(Blocks.STAINED_GLASS.yellow());
+		TRAIL_BLOCKS.add(Blocks.STAINED_GLASS.lime());
+		TRAIL_BLOCKS.add(Blocks.STAINED_GLASS.purple());
+		TRAIL_BLOCKS.add(Blocks.STAINED_GLASS.orange());
+		TRAIL_BLOCKS.add(Blocks.STAINED_GLASS.blue());
+		TRAIL_BLOCKS.add(Blocks.STAINED_GLASS.pink());
+		TRAIL_BLOCKS.add(Blocks.STAINED_GLASS.magenta());
 	}
 }
