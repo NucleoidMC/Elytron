@@ -6,8 +6,9 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 
 import io.github.haykam821.elytron.game.map.ElytronMapConfig;
 import net.minecraft.SharedConstants;
-import net.minecraft.util.math.intprovider.ConstantIntProvider;
-import net.minecraft.util.math.intprovider.IntProvider;
+import net.minecraft.util.valueproviders.ConstantInt;
+import net.minecraft.util.valueproviders.IntProvider;
+import net.minecraft.util.valueproviders.IntProviders;
 import xyz.nucleoid.plasmid.api.game.common.config.WaitingLobbyConfig;
 
 public class ElytronConfig {
@@ -15,7 +16,7 @@ public class ElytronConfig {
 		return instance.group(
 			ElytronMapConfig.CODEC.fieldOf("map").forGetter(ElytronConfig::getMapConfig),
 			WaitingLobbyConfig.CODEC.fieldOf("players").forGetter(ElytronConfig::getPlayerConfig),
-			IntProvider.NON_NEGATIVE_CODEC.optionalFieldOf("ticks_until_close", ConstantIntProvider.create(SharedConstants.TICKS_PER_SECOND * 5)).forGetter(ElytronConfig::getTicksUntilClose),
+			IntProviders.NON_NEGATIVE_CODEC.optionalFieldOf("ticks_until_close", ConstantInt.of(SharedConstants.TICKS_PER_SECOND * 5)).forGetter(ElytronConfig::getTicksUntilClose),
 			Codec.INT.optionalFieldOf("height", 2).forGetter(ElytronConfig::getHeight),
 			Codec.INT.optionalFieldOf("delay", 15).forGetter(ElytronConfig::getDelay),
 			Codec.INT.optionalFieldOf("decay", 200).forGetter(ElytronConfig::getDecay)

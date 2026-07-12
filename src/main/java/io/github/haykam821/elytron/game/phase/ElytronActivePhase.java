@@ -15,31 +15,31 @@ import it.unimi.dsi.fastutil.longs.Long2IntMap;
 import it.unimi.dsi.fastutil.longs.Long2IntMaps;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.entity.EquipmentSlot;
-import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.entity.damage.DamageTypes;
-import net.minecraft.entity.effect.StatusEffectInstance;
-import net.minecraft.entity.effect.StatusEffects;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.network.packet.s2c.play.TitleFadeS2CPacket;
-import net.minecraft.network.packet.s2c.play.TitleS2CPacket;
-import net.minecraft.registry.RegistryWrapper;
-import net.minecraft.registry.tag.DamageTypeTags;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.text.Text;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.Hand;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.GameMode;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.damagesource.DamageTypes;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.network.protocol.game.ClientboundSetTitlesAnimationPacket;
+import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.tags.DamageTypeTags;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.ChatFormatting;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.util.Mth;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.level.GameType;
 import xyz.nucleoid.plasmid.api.game.GameActivity;
 import xyz.nucleoid.plasmid.api.game.GameCloseReason;
 import xyz.nucleoid.plasmid.api.game.GameSpace;
@@ -60,7 +60,7 @@ public class ElytronActivePhase {
 	private static final int ELYTRA_OPEN_TICKS = 40;
 	private static final int INTERPOLATION_STEPS = 3;
 
-	private final ServerWorld world;
+	private final ServerLevel level;
 	private final GameSpace gameSpace;
 	private final ElytronMap map;
 	private final ElytronConfig config;
@@ -70,8 +70,8 @@ public class ElytronActivePhase {
 	private int invulnerabilityTicks = STARTING_INVULNERABILITY_TICKS;
 	private int ticksUntilClose = -1;
 
-	public ElytronActivePhase(GameSpace gameSpace, ServerWorld world, ElytronMap map, ElytronConfig config) {
-		this.world = world;
+	public ElytronActivePhase(GameSpace gameSpace, ServerLevel level, ElytronMap map, ElytronConfig config) {
+		this.level = level;
 		this.gameSpace = gameSpace;
 		this.map = map;
 		this.config = config;
@@ -87,8 +87,8 @@ public class ElytronActivePhase {
 		activity.deny(GameRuleType.THROW_ITEMS);
 	}
 
-	public static void open(GameSpace gameSpace, ServerWorld world, ElytronMap map, ElytronConfig config) {
-		ElytronActivePhase phase = new ElytronActivePhase(gameSpace, world, map, config);
+	public static void open(GameSpace gameSpace, ServerLevel level, ElytronMap map, ElytronConfig config) {
+		ElytronActivePhase phase = new ElytronActivePhase(gameSpace, level, map, config);
 		gameSpace.setActivity(activity -> {
 			ElytronActivePhase.setRules(activity);
 
@@ -106,37 +106,37 @@ public class ElytronActivePhase {
 
 	private void enable() {
 		PlayerSet participants = this.gameSpace.getPlayers().participants();
-		RegistryWrapper.WrapperLookup registries = this.world.getRegistryManager();
+		HolderLookup.Provider registries = this.level.registryAccess();
 
 		ElytronMapConfig mapConfig = this.config.getMapConfig();
 		int spawnRadius = (Math.min(mapConfig.getZ(), mapConfig.getX()) - 10) / 2;
 
-		Vec3d center = this.map.getInnerBox().getCenter();
+		Vec3 center = this.map.getInnerBox().getCenter();
 
 		int index = 0;
 		int total = participants.size();
 
- 		for (ServerPlayerEntity player : participants) {
+ 		for (ServerPlayer player : participants) {
 			this.players.add(new PlayerEntry(player, Main.getTrailBlock(index)));
 	
-			player.changeGameMode(GameMode.ADVENTURE);
-			player.addStatusEffect(new StatusEffectInstance(StatusEffects.LEVITATION, STARTING_INVULNERABILITY_TICKS - ELYTRA_OPEN_TICKS, 15, true, false));
+			player.setGameMode(GameType.ADVENTURE);
+			player.addEffect(new MobEffectInstance(MobEffects.LEVITATION, STARTING_INVULNERABILITY_TICKS - ELYTRA_OPEN_TICKS, 15, true, false));
 
-			player.equipStack(EquipmentSlot.CHEST, PlayerEntry.getElytraStack(registries));
+			player.setItemSlot(EquipmentSlot.CHEST, PlayerEntry.getElytraStack(registries));
 			PlayerEntry.fillHotbarWithFireworkRockets(player);
 
 			double theta = ((double) index++ / total) * 2 * Math.PI;
-			float yaw = (float) theta * MathHelper.DEGREES_PER_RADIAN + 90;
+			float yaw = (float) theta * Mth.RAD_TO_DEG + 90;
 
-			double x = center.getX() + Math.cos(theta) * spawnRadius;
-			double z = center.getZ() + Math.sin(theta) * spawnRadius;
+			double x = center.x() + Math.cos(theta) * spawnRadius;
+			double z = center.z() + Math.sin(theta) * spawnRadius;
 
-			player.teleport(this.world, x, this.map.getInnerBox().minY, z, Set.of(), yaw, 0, true);
+			player.teleportTo(this.level, x, this.map.getInnerBox().minY, z, Set.of(), yaw, 0, true);
 		}
 
 		this.singleplayer = this.players.size() == 1;
 
-		for (ServerPlayerEntity player : this.gameSpace.getPlayers().spectators()) {
+		for (ServerPlayer player : this.gameSpace.getPlayers().spectators()) {
 			this.map.teleportToWaitingSpawn(player);
 			this.setSpectator(player);
 		}
@@ -149,22 +149,22 @@ public class ElytronActivePhase {
 		map.put(pos.asLong(), ticks);
 	}
 
-	private void addTrailBlocks(PlayerEntry player, BlockPos.Mutable pos, int ticks, int height, Map<Block, Long2IntMap> trailPositions) {
+	private void addTrailBlocks(PlayerEntry player, BlockPos.MutableBlockPos pos, int ticks, int height, Map<Block, Long2IntMap> trailPositions) {
 		Block trail = player.getTrail();
 
-		Vec3d start = player.getPreviousPos();
-		Vec3d end = player.getPos();
+		Vec3 start = player.getPreviousPos();
+		Vec3 end = player.getPos();
 
-		double relativeX = end.getX() - start.getX();
-		double relativeY = end.getY() - start.getY();
-		double relativeZ = end.getZ() - start.getZ();
+		double relativeX = end.x() - start.x();
+		double relativeY = end.y() - start.y();
+		double relativeZ = end.z() - start.z();
 
 		for (int step = 1; step <= INTERPOLATION_STEPS; step++) {
 			double progress = step / (double) INTERPOLATION_STEPS;
 
-			pos.setX((int) (start.getX() + relativeX * progress));
-			pos.setY((int) (start.getY() + relativeY * progress));
-			pos.setZ((int) (start.getZ() + relativeZ * progress));
+			pos.setX((int) (start.x() + relativeX * progress));
+			pos.setY((int) (start.y() + relativeY * progress));
+			pos.setZ((int) (start.z() + relativeZ * progress));
 
 			for (int y = 0; y < height; y++) {
 				this.addTrailBlock(trail, pos, ticks, trailPositions);
@@ -188,21 +188,21 @@ public class ElytronActivePhase {
 			this.invulnerabilityTicks -= 1;
 		}
 		if (this.invulnerabilityTicks == ELYTRA_OPEN_TICKS) {
-			TitleFadeS2CPacket titleFadePacket = new TitleFadeS2CPacket(5, 60, 5);
-			TitleS2CPacket titlePacket = new TitleS2CPacket(Text.translatable("text.elytron.open_elytra").formatted(Formatting.BLUE));
+			ClientboundSetTitlesAnimationPacket titleFadePacket = new ClientboundSetTitlesAnimationPacket(5, 60, 5);
+			ClientboundSetTitleTextPacket titlePacket = new ClientboundSetTitleTextPacket(Component.translatable("text.elytron.open_elytra").withStyle(ChatFormatting.BLUE));
 
 			for (PlayerEntry player : this.players) {
 				player.startGliding(titleFadePacket, titlePacket);
 			}
 		}
 		
-		BlockPos.Mutable trailPos = new BlockPos.Mutable();
+		BlockPos.MutableBlockPos trailPos = new BlockPos.MutableBlockPos();
 
 		Map<Block, Long2IntMap> temporaryTrailPositions = new HashMap<>();;
 		Iterator<Map.Entry<Block, Long2IntMap>> blockEntryIterator = this.trailPositions.entrySet().iterator();
 		while (blockEntryIterator.hasNext()) {
 			Map.Entry<Block, Long2IntMap> blockEntry = blockEntryIterator.next();
-			BlockState state = blockEntry.getKey().getDefaultState();
+			BlockState state = blockEntry.getKey().defaultBlockState();
 
 			ObjectIterator<Long2IntMap.Entry> iterator = Long2IntMaps.fastIterator(blockEntry.getValue());
 			while (iterator.hasNext()) {
@@ -214,7 +214,7 @@ public class ElytronActivePhase {
 					trailPos.set(trailLongPos);
 
 					if (this.map.getInnerBox().contains(trailPos.getX(), trailPos.getY(), trailPos.getZ())) {
-						this.world.setBlockState(trailPos, state);
+						this.level.setBlockAndUpdate(trailPos, state);
 
 						if (!state.isAir() && this.config.getDecay() >= 0) {
 							this.addTrailBlock(Blocks.AIR, trailPos, this.config.getDecay(), temporaryTrailPositions);
@@ -232,22 +232,22 @@ public class ElytronActivePhase {
 		Iterator<PlayerEntry> playerIterator = this.players.iterator();
 		while (playerIterator.hasNext()) {
 			PlayerEntry entry = playerIterator.next();
-			ServerPlayerEntity player = entry.getPlayer();
+			ServerPlayer player = entry.getPlayer();
 
-			if (!this.map.getInnerBox().expand(0.5).contains(entry.getPos())) {
+			if (!this.map.getInnerBox().inflate(0.5).contains(entry.getPos())) {
 				this.eliminate(entry, "text.elytron.eliminated.out_of_bounds", false);
 				playerIterator.remove();
 			}
 
 			trailPos.set(player.getX(), player.getY(), player.getZ());
-			BlockState state = this.world.getBlockState(trailPos);
+			BlockState state = this.level.getBlockState(trailPos);
 			if (Main.isTrailBlock(state.getBlock())) {
 				this.eliminate(entry, "text.elytron.eliminated.fly_into_trail", false);
 				playerIterator.remove();
 			}
 
 			if (this.invulnerabilityTicks == 0) {
-				if (!player.isGliding()) {
+				if (!player.isFallFlying()) {
 					this.eliminate(entry, "text.elytron.eliminated.elytra_not_opened", false);
 					playerIterator.remove();
 				}
@@ -263,32 +263,32 @@ public class ElytronActivePhase {
 			
 			this.gameSpace.getPlayers().sendMessage(this.getEndingMessage());
 
-			this.ticksUntilClose = this.config.getTicksUntilClose().get(this.world.getRandom());
+			this.ticksUntilClose = this.config.getTicksUntilClose().sample(this.level.getRandom());
 		}
 	}
 
-	private Text getEndingMessage() {
+	private Component getEndingMessage() {
 		if (this.players.size() == 1) {
 			return this.players.iterator().next().getWinText();
 		}
-		return Text.translatable("text.elytron.win.none").formatted(Formatting.GOLD);
+		return Component.translatable("text.elytron.win.none").withStyle(ChatFormatting.GOLD);
 	}
 
 	private boolean isGameEnding() {
 		return this.ticksUntilClose >= 0;
 	}
 
-	private void setSpectator(ServerPlayerEntity player) {
-		player.changeGameMode(GameMode.SPECTATOR);
+	private void setSpectator(ServerPlayer player) {
+		player.setGameMode(GameType.SPECTATOR);
 	}
 
 	private JoinAcceptorResult onAcceptPlayers(JoinAcceptor acceptor) {
-		return acceptor.teleport(this.world, this.map.getWaitingSpawnPos()).thenRunForEach(player -> {
+		return acceptor.teleport(this.level, this.map.getWaitingSpawnPos()).thenRunForEach(player -> {
 			this.setSpectator(player);
 		});
 	}
 
-	private void removePlayer(ServerPlayerEntity player) {
+	private void removePlayer(ServerPlayer player) {
 		PlayerEntry entry = this.getPlayerEntry(player);
 
 		if (entry != null) {
@@ -300,9 +300,9 @@ public class ElytronActivePhase {
 		if (this.isGameEnding()) return;
 		if (!this.players.contains(eliminatedPlayer)) return;
 
-		Text message = Text.translatable(reason, eliminatedPlayer.getDisplayName()).formatted(Formatting.RED);
-		for (ServerPlayerEntity player : this.gameSpace.getPlayers()) {
-			player.sendMessage(message, false);
+		Component message = Component.translatable(reason, eliminatedPlayer.getDisplayName()).withStyle(ChatFormatting.RED);
+		for (ServerPlayer player : this.gameSpace.getPlayers()) {
+			player.sendSystemMessage(message, false);
 		}
 
 		if (remove) {
@@ -315,17 +315,17 @@ public class ElytronActivePhase {
 		this.eliminate(eliminatedPlayer, "text.elytron.eliminated", remove);
 	}
 
-	private EventResult onPlayerDamage(ServerPlayerEntity player, DamageSource source, float amount) {
+	private EventResult onPlayerDamage(ServerPlayer player, DamageSource source, float amount) {
 		PlayerEntry entry = this.getPlayerEntry(player);
 
 		if (entry != null) {
-			if (source.isOf(DamageTypes.FLY_INTO_WALL)) {
-				if (this.map.getInnerInnerBox().contains(player.getPos())) {
+			if (source.is(DamageTypes.FLY_INTO_WALL)) {
+				if (this.map.getInnerInnerBox().contains(player.position())) {
 					this.eliminate(entry, "text.elytron.eliminated.fly_into_trail", true);
 				} else {
 					this.eliminate(entry, "text.elytron.eliminated.fly_into_wall", true);
 				}
-			} else if (source.isIn(DamageTypeTags.IS_FALL)) {
+			} else if (source.is(DamageTypeTags.IS_FALL)) {
 				this.eliminate(entry, "text.elytron.eliminated.fall", true);
 			}
 		}
@@ -333,7 +333,7 @@ public class ElytronActivePhase {
 		return EventResult.DENY;
 	}
 
-	private EventResult onPlayerDeath(ServerPlayerEntity player, DamageSource source) {
+	private EventResult onPlayerDeath(ServerPlayer player, DamageSource source) {
 		PlayerEntry entry = this.getPlayerEntry(player);
 
 		if (entry != null) {
@@ -343,18 +343,18 @@ public class ElytronActivePhase {
 		return EventResult.ALLOW;
 	}
 
-	private ActionResult onUseItem(ServerPlayerEntity player, Hand hand) {
+	private InteractionResult onUseItem(ServerPlayer player, InteractionHand hand) {
 		PlayerEntry.fillHotbarWithFireworkRockets(player);
 
-		ItemStack handStack = player.getStackInHand(hand);
-		if (handStack.getItem() == Items.FIREWORK_ROCKET && player.isGliding()) {
-			handStack.increment(1);
+		ItemStack handStack = player.getItemInHand(hand);
+		if (handStack.getItem() == Items.FIREWORK_ROCKET && player.isFallFlying()) {
+			handStack.grow(1);
 		}
 		
-		return ActionResult.PASS;
+		return InteractionResult.PASS;
 	}
 
-	private PlayerEntry getPlayerEntry(ServerPlayerEntity player) {
+	private PlayerEntry getPlayerEntry(ServerPlayer player) {
 		for (PlayerEntry entry : this.players) {
 			if (player == entry.getPlayer()) {
 				return entry;

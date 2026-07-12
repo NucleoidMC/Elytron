@@ -4,13 +4,12 @@ import java.util.Set;
 
 import io.github.haykam821.elytron.game.ElytronConfig;
 import io.github.haykam821.elytron.game.map.ElytronMap;
-import io.github.haykam821.elytron.game.map.ElytronMapBuilder;
-import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.GameMode;
-import xyz.nucleoid.fantasy.RuntimeWorldConfig;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.level.GameType;
+import xyz.nucleoid.fantasy.RuntimeLevelConfig;
 import xyz.nucleoid.plasmid.api.game.GameOpenContext;
 import xyz.nucleoid.plasmid.api.game.GameOpenProcedure;
 import xyz.nucleoid.plasmid.api.game.GameResult;
@@ -26,26 +25,25 @@ import xyz.nucleoid.stimuli.event.player.PlayerDeathEvent;
 
 public class ElytronWaitingPhase {
 	private final GameSpace gameSpace;
-	private final ServerWorld world;
+	private final ServerLevel level;
 	private final ElytronMap map;
 	private final ElytronConfig config;
 
-	public ElytronWaitingPhase(GameSpace gameSpace, ServerWorld world, ElytronMap map, ElytronConfig config) {
+	public ElytronWaitingPhase(GameSpace gameSpace, ServerLevel level, ElytronMap map, ElytronConfig config) {
 		this.gameSpace = gameSpace;
-		this.world = world;
+		this.level = level;
 		this.map = map;
 		this.config = config;
 	}
 
 	public static GameOpenProcedure open(GameOpenContext<ElytronConfig> context) {
-		ElytronMapBuilder mapBuilder = new ElytronMapBuilder(context.config());
-		ElytronMap map = mapBuilder.create(context.server().getOverworld().getRandom());
+		ElytronMap map = new ElytronMap(context.config().getMapConfig());
 
-		RuntimeWorldConfig worldConfig = new RuntimeWorldConfig()
+		RuntimeLevelConfig levelConfig = new RuntimeLevelConfig()
 			.setGenerator(map.createGenerator(context.server()));
 
-		return context.openWithWorld(worldConfig, (activity, world) -> {
-			ElytronWaitingPhase phase = new ElytronWaitingPhase(activity.getGameSpace(), world, map, context.config());
+		return context.openWithLevel(levelConfig, (activity, level) -> {
+			ElytronWaitingPhase phase = new ElytronWaitingPhase(activity.getGameSpace(), level, map, context.config());
 
 			GameWaitingLobby.addTo(activity, context.config().getPlayerConfig());
 			ElytronActivePhase.setRules(activity);
@@ -59,24 +57,24 @@ public class ElytronWaitingPhase {
 	}
 
 	private GameResult requestStart() {
-		ElytronActivePhase.open(this.gameSpace, this.world, this.map, this.config);
+		ElytronActivePhase.open(this.gameSpace, this.level, this.map, this.config);
 		return GameResult.ok();
 	}
 
 	private JoinAcceptorResult onAcceptPlayers(JoinAcceptor acceptor) {
-		return acceptor.teleport(this.world, this.map.getWaitingSpawnPos()).thenRunForEach(player -> {
-			player.changeGameMode(GameMode.ADVENTURE);
+		return acceptor.teleport(this.level, this.map.getWaitingSpawnPos()).thenRunForEach(player -> {
+			player.setGameMode(GameType.ADVENTURE);
 		});
 	}
 
-	private EventResult onPlayerDeath(ServerPlayerEntity player, DamageSource source) {
+	private EventResult onPlayerDeath(ServerPlayer player, DamageSource source) {
 		// Respawn player at the start
 		this.spawnPlayer(player);
 		return EventResult.ALLOW;
 	}
 
-	private void spawnPlayer(ServerPlayerEntity player) {
-		Vec3d spawnPos = this.map.getWaitingSpawnPos();
-		player.teleport(this.world, spawnPos.getX(), spawnPos.getY(), spawnPos.getZ(), Set.of(), 0, 0, true);
+	private void spawnPlayer(ServerPlayer player) {
+		Vec3 spawnPos = this.map.getWaitingSpawnPos();
+		player.teleportTo(this.level, spawnPos.x(), spawnPos.y(), spawnPos.z(), Set.of(), 0, 0, true);
 	}
 }

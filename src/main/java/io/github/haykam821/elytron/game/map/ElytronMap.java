@@ -2,48 +2,48 @@ package io.github.haykam821.elytron.game.map;
 
 import java.util.Set;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.gen.chunk.ChunkGenerator;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.level.chunk.ChunkGenerator;
 import xyz.nucleoid.map_templates.BlockBounds;
-import xyz.nucleoid.map_templates.MapTemplate;
-import xyz.nucleoid.plasmid.api.game.world.generator.TemplateChunkGenerator;
 
 public class ElytronMap {
-	private final MapTemplate template;
-	private final Box innerBox;
-	private final Box innerInnerBox;
-	private final Vec3d waitingSpawnPos;
+	private final AABB innerBox;
+	private final AABB innerInnerBox;
+	private final Vec3 waitingSpawnPos;
+	private final ElytronMapConfig config;
 
-	public ElytronMap(MapTemplate template, BlockBounds bounds) {
-		this.template = template;
-		this.innerBox = bounds.asBox().expand(-1, -1, -1);
-		this.innerInnerBox = this.innerBox.expand(-1, -1, -1);
+	public ElytronMap(ElytronMapConfig config) {
+		this.config = config;
+		BlockBounds bounds = BlockBounds.of(BlockPos.ZERO, new BlockPos(config.getX(), config.getY(), config.getZ()));
+		this.innerBox = bounds.asBox().inflate(-1, -1, -1);
+		this.innerInnerBox = this.innerBox.inflate(-1, -1, -1);
 
-		Vec3d center = this.innerBox.getCenter();
-		this.waitingSpawnPos = new Vec3d(center.getX(), this.innerBox.minY, center.getZ());
+		Vec3 center = this.innerBox.getCenter();
+		this.waitingSpawnPos = new Vec3(center.x(), this.innerBox.minY, center.z());
 	}
 
-	public Box getInnerBox() {
+	public AABB getInnerBox() {
 		return this.innerBox;
 	}
 
-	public Box getInnerInnerBox() {
+	public AABB getInnerInnerBox() {
 		return this.innerInnerBox;
 	}
 
-	public Vec3d getWaitingSpawnPos() {
+	public Vec3 getWaitingSpawnPos() {
 		return this.waitingSpawnPos;
 	}
 
-	public void teleportToWaitingSpawn(ServerPlayerEntity player) {
-		Vec3d pos = this.getWaitingSpawnPos();
-		player.teleport(player.getServerWorld(), pos.getX(), pos.getY(), pos.getZ(), Set.of(), 0, 0, true);
+	public void teleportToWaitingSpawn(ServerPlayer player) {
+		Vec3 pos = this.getWaitingSpawnPos();
+		player.teleportTo(player.level(), pos.x(), pos.y(), pos.z(), Set.of(), 0, 0, true);
 	}
 
 	public ChunkGenerator createGenerator(MinecraftServer server) {
-		return new TemplateChunkGenerator(server, this.template);
+		return new ElytronMapGenerator(this.config, server);
 	}
 }

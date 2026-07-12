@@ -6,10 +6,11 @@ import java.util.List;
 import io.github.haykam821.elytron.game.ElytronConfig;
 import io.github.haykam821.elytron.game.phase.ElytronWaitingPhase;
 import net.fabricmc.api.ModInitializer;
-import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
-import net.minecraft.util.Identifier;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.resources.Identifier;
 import xyz.nucleoid.plasmid.api.game.GameType;
+import xyz.nucleoid.plasmid.api.game.GameTypes;
 
 public class Main implements ModInitializer {
 	private static final String MOD_ID = "elytron";
@@ -17,7 +18,7 @@ public class Main implements ModInitializer {
 	private static final List<Block> TRAIL_BLOCKS = new ArrayList<>();
 
 	private static final Identifier ELYTRON_ID = Main.identifier("elytron");
-	public static final GameType<ElytronConfig> ELYTRON_TYPE = GameType.register(ELYTRON_ID, ElytronConfig.CODEC, ElytronWaitingPhase::open);
+	public static final GameType<ElytronConfig> ELYTRON_TYPE = GameTypes.register(ELYTRON_ID, ElytronConfig.CODEC, ElytronWaitingPhase::open);
 
 	@Override
 	public void onInitialize() {
@@ -33,18 +34,18 @@ public class Main implements ModInitializer {
 	}
 
 	public static Identifier identifier(String path) {
-		return Identifier.of(MOD_ID, path);
+		return Identifier.fromNamespaceAndPath(MOD_ID, path);
 	}
 
 	static {
-		TRAIL_BLOCKS.add(Blocks.RED_STAINED_GLASS);
-		TRAIL_BLOCKS.add(Blocks.BLUE_STAINED_GLASS);
-		TRAIL_BLOCKS.add(Blocks.YELLOW_STAINED_GLASS);
-		TRAIL_BLOCKS.add(Blocks.LIME_STAINED_GLASS);
-		TRAIL_BLOCKS.add(Blocks.PURPLE_STAINED_GLASS);
-		TRAIL_BLOCKS.add(Blocks.ORANGE_STAINED_GLASS);
-		TRAIL_BLOCKS.add(Blocks.BLUE_STAINED_GLASS);
-		TRAIL_BLOCKS.add(Blocks.PINK_STAINED_GLASS);
-		TRAIL_BLOCKS.add(Blocks.MAGENTA_STAINED_GLASS);
+		TRAIL_BLOCKS.add(Blocks.STAINED_GLASS.red());
+		TRAIL_BLOCKS.add(Blocks.STAINED_GLASS.blue());
+		TRAIL_BLOCKS.add(Blocks.STAINED_GLASS.yellow());
+		TRAIL_BLOCKS.add(Blocks.STAINED_GLASS.lime());
+		TRAIL_BLOCKS.add(Blocks.STAINED_GLASS.purple());
+		TRAIL_BLOCKS.add(Blocks.STAINED_GLASS.orange());
+		TRAIL_BLOCKS.add(Blocks.STAINED_GLASS.blue());
+		TRAIL_BLOCKS.add(Blocks.STAINED_GLASS.pink());
+		TRAIL_BLOCKS.add(Blocks.STAINED_GLASS.magenta());
 	}
 }
