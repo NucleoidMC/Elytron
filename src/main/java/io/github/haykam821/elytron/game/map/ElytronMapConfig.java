@@ -13,9 +13,9 @@ public class ElytronMapConfig {
 			Codec.INT.fieldOf("x").forGetter(ElytronMapConfig::getX),
 			Codec.INT.fieldOf("y").forGetter(ElytronMapConfig::getY),
 			Codec.INT.fieldOf("z").forGetter(ElytronMapConfig::getZ),
-			BlockStateProvider.CODEC.optionalFieldOf("floor_provider", BlockStateProvider.simple(Blocks.SPRUCE_PLANKS)).forGetter(ElytronMapConfig::getFloorProvider),
-			BlockStateProvider.CODEC.optionalFieldOf("wall_provider", BlockStateProvider.simple(Blocks.STRIPPED_DARK_OAK_LOG)).forGetter(ElytronMapConfig::getWallProvider),
-			BlockStateProvider.CODEC.optionalFieldOf("ceiling_provider", BlockStateProvider.simple(Blocks.STAINED_GLASS.white())).forGetter(ElytronMapConfig::getCeilingProvider)
+			BlockStateProvider.DIRECT_CODEC.optionalFieldOf("floor_provider", BlockStateProvider.of(Blocks.SPRUCE_PLANKS)).forGetter(ElytronMapConfig::getFloorProvider),
+			BlockStateProvider.DIRECT_CODEC.optionalFieldOf("wall_provider", BlockStateProvider.of(Blocks.STRIPPED_DARK_OAK_LOG)).forGetter(ElytronMapConfig::getWallProvider),
+			BlockStateProvider.DIRECT_CODEC.optionalFieldOf("ceiling_provider", BlockStateProvider.of(Blocks.STAINED_GLASS.white())).forGetter(ElytronMapConfig::getCeilingProvider)
 		).apply(instance, ElytronMapConfig::new);
 	});
 
